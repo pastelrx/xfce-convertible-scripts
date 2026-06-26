@@ -1,0 +1,23 @@
+# Gromit-MPX configuration
+#
+# Copy to ~/.config/gromit-mpx.cfg and restart gromit-mpx to apply.
+#
+# Tuned for a Wacom pen on a convertible laptop:
+#   - default tool: cyan pen (readable on a dark background)
+#   - pen side button: eraser
+#
+# The pen tip draws by default; the lower side button switches to the eraser
+# while held. Button numbering varies between devices, so if the eraser ends
+# up on the wrong button, check `xinput test <pen-device-id>` to see which
+# Button number your side button reports, then adjust [Button2] below.
+
+"cyan Pen" = PEN (size=5 color="cyan");
+"Eraser"   = ERASER (size=75);
+
+"default"          = "cyan Pen";
+"default"[Button2] = "Eraser";
+
+# Hotkeys are auto-set to Home / End under XFCE (it grabs the F-keys).
+# Uncomment to override:
+# HOTKEY = "F9";
+# UNDOKEY = "F8";
