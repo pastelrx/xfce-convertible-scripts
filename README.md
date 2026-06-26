@@ -49,11 +49,41 @@ If the eraser lands on the wrong button, run `xinput test <pen-device-id>` to
 find which `Button` number your side button reports and adjust the `[Button2]`
 line in the config.
 
+### `fcc-unlock-setup.sh`
+
+Activates the vendor FCC-unlock script that ships with ModemManager, so a
+WWAN modem that's FCC-locked from the factory gets unlocked automatically on
+every connection.
+
+Many laptop modems (Quectel, Sierra, Fibocom, Dell/HP rebrands) ship FCC-locked
+for US regulatory compliance and won't transmit until unlocked. ModemManager
+bundles the vendor unlock scripts under
+`/usr/share/ModemManager/fcc-unlock.available.d/` but ships them disabled.
+Enabling one means symlinking it into `/etc/ModemManager/fcc-unlock.d/` under
+the modem's USB ID — which this script detects and does for you, so it works on
+any machine rather than one specific modem.
+
+```bash
+# preview what it would do, change nothing:
+sudo ./scripts/fcc-unlock-setup.sh --dry-run
+
+# detect, enable, and restart ModemManager:
+sudo ./scripts/fcc-unlock-setup.sh
+```
+
+Then verify with `mmcli -L` and `mmcli -m 0`. On a properly unlocked modem,
+ModemManager brings the radio up on its own — no extra service needed.
+
+This only activates scripts that ModemManager already ships; it doesn't bypass
+or defeat the FCC lock mechanism, it uses the vendor's own supported unlock
+path.
+
 ## Requirements
 
 - X11 + XFCE
-- `gromit-mpx` (from the AUR on Arch/Manjaro)
-- `xorg-xinput` (for checking pen button numbers)
+- `gromit-mpx` (from the AUR on Arch/Manjaro) — for the annotation scripts
+- `xorg-xinput` — for checking pen button numbers
+- `modemmanager` + `usbutils` — for `fcc-unlock-setup.sh`
 
 ## Install
 
