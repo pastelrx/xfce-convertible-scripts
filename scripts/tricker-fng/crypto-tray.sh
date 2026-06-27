@@ -13,11 +13,21 @@
 #   < 1      -> "$0.162"      (DOGE, XRP, ...)
 #
 # ---- CONFIG ----------------------------------------------------------------
-# Edit these two lines. Just bare tickers separated by spaces; the script adds
-# USDT and queries Binance. The label shown is the ticker as written here.
+# Coins are read from ~/.config/crypto-tray.conf if it exists (managed by the
+# crypto-config GUI). The values below are just defaults used when no config
+# file is present yet.
+#
+#   PANEL_COINS   — shown in the panel (compact, no percentages)
+#   TOOLTIP_COINS — shown in the hover tooltip (with 24h %)
+#
+# Bare tickers separated by spaces; the script appends USDT and queries Binance.
 #
 PANEL_COINS="BTC ETH"
 TOOLTIP_COINS="BTC ETH SOL XRP DOGE LTC"
+
+CONF="${XDG_CONFIG_HOME:-$HOME/.config}/crypto-tray.conf"
+# shellcheck disable=SC1090
+[ -f "$CONF" ] && . "$CONF"
 # ----------------------------------------------------------------------------
 #
 # Setup:
@@ -66,12 +76,38 @@ get_coin() {
     echo "$price $pct"
 }
 
-# Format a price by magnitude (see header).
+# Format a price by magnitude (see header). Used for the COMPACT PANEL text.
 fmt_price() {
     awk -v p="$1" 'BEGIN {
         if (p >= 1000)      printf "$%.1fk", p/1000;
         else if (p >= 1)    printf "$%.0f", p;
         else                printf "$%.3f", p;
+    }'
+}
+
+# Format a price for the TOOLTIP, where there's room for full precision:
+#   >= 1000  -> whole dollars with thousands separators   "$60,123"
+#   1 .. 999 -> two decimals                              "$72.22"  "$1.11"
+#   < 1      -> three decimals (small coins keep detail)  "$0.076"
+# The thousands grouping is done manually so it works regardless of locale.
+fmt_tooltip() {
+    awk -v p="$1" 'BEGIN {
+        if (p >= 1000) {
+            # round to whole dollars, then insert commas every 3 digits
+            n = sprintf("%.0f", p);
+            len = length(n);
+            out = "";
+            for (i = 1; i <= len; i++) {
+                out = out substr(n, i, 1);
+                rem = len - i;            # digits still to the right
+                if (rem > 0 && rem % 3 == 0) out = out ",";
+            }
+            printf "$%s", out;
+        } else if (p >= 1) {
+            printf "$%.2f", p;
+        } else {
+            printf "$%.3f", p;
+        }
     }'
 }
 
@@ -98,7 +134,7 @@ for c in $TOOLTIP_COINS; do
     if out=$(get_coin "$c"); then
         read -r p pct <<< "$out"
         pct_fmt=$(awk -v c="$pct" 'BEGIN { printf "%+.1f", c }')
-        line=$(printf '%-5s %-9s  24h %s%%' "$c" "$(fmt_price "$p")" "$pct_fmt")
+        line=$(printf '%-5s %-10s  24h %s%%' "$c" "$(fmt_tooltip "$p")" "$pct_fmt")
         [ -n "$tip" ] && tip="$tip
 "
         tip="$tip$line"
