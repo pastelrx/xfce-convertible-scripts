@@ -1,99 +1,135 @@
-# xfce-tablet-scripts
+# xfce-convertible-scripts
 
-Small utility scripts for running a convertible/2-in-1 laptop comfortably under
-**XFCE on X11** — pen annotation, on-screen drawing, and related tablet-mode
-quality-of-life fixes.
+Small utility scripts for running a convertible / 2-in-1 laptop comfortably
+under **XFCE on X11** — pen annotation, a crypto panel readout, and modem
+FCC-unlock. Built and tested on a **Fujitsu LIFEBOOK U9313X** running
+**Manjaro XFCE**, but most of it is generic to any X11 + XFCE setup.
 
-Built and tested on a **Fujitsu LIFEBOOK U9313X** running **Manjaro XFCE**, but
-most of it is generic to any X11 + XFCE setup with a Wacom pen.
-
-## Scripts
-
-### `gromit-toggle.sh`
-
-Smart launcher for [Gromit-MPX](https://github.com/bk138/gromit-mpx), the
-on-screen annotation tool. Bind it to a hotkey instead of calling `gromit-mpx`
-directly: the first press launches it in drawing mode, and every press after
-that toggles drawing on/off — so you never end up with duplicate instances.
+## Quick start
 
 ```bash
-cp scripts/gromit-toggle.sh ~/.local/bin/
-chmod +x ~/.local/bin/gromit-toggle.sh
+git clone https://github.com/pastelrx/xfce-convertible-scripts.git
+cd xfce-convertible-scripts
+./install.sh
 ```
 
-Then in `Settings → Keyboard → Application Shortcuts`, add a shortcut (e.g.
-`Super+Home`) pointing at `~/.local/bin/gromit-toggle.sh`.
+The installer shows a numbered menu, checks dependencies (offering to install
+missing ones via pacman), copies each chosen script into place, and prints the
+manual follow-up steps (like adding a panel monitor or binding a hotkey).
 
-While Gromit-MPX is active, its own hotkeys apply (XFCE remaps them to avoid
-conflicts):
-
-| Key          | Action              |
-|--------------|---------------------|
-| `Home`       | toggle drawing      |
-| `Shift+Home` | clear screen        |
-| `Ctrl+Home`  | toggle visibility   |
-| `End`        | undo last stroke    |
-| `Shift+End`  | redo                |
-
-### `gromit-mpx.cfg.example`
-
-A ready-made Gromit-MPX config: cyan pen by default (readable on a dark
-background) with the eraser mapped to the pen's side button.
+If `./install.sh` gives a "permission denied" (the execute bit didn't survive,
+which can happen with web uploads), either run it through bash:
 
 ```bash
-cp scripts/gromit-mpx.cfg.example ~/.config/gromit-mpx.cfg
-# then restart gromit-mpx
+bash install.sh
 ```
 
-If the eraser lands on the wrong button, run `xinput test <pen-device-id>` to
-find which `Button` number your side button reports and adjust the `[Button2]`
-line in the config.
-
-### `fcc-unlock-setup.sh`
-
-Activates the vendor FCC-unlock script that ships with ModemManager, so a
-WWAN modem that's FCC-locked from the factory gets unlocked automatically on
-every connection.
-
-Many laptop modems (Quectel, Sierra, Fibocom, Dell/HP rebrands) ship FCC-locked
-for US regulatory compliance and won't transmit until unlocked. ModemManager
-bundles the vendor unlock scripts under
-`/usr/share/ModemManager/fcc-unlock.available.d/` but ships them disabled.
-Enabling one means symlinking it into `/etc/ModemManager/fcc-unlock.d/` under
-the modem's USB ID — which this script detects and does for you, so it works on
-any machine rather than one specific modem.
+or restore the execute bits once:
 
 ```bash
-# preview what it would do, change nothing:
-sudo ./scripts/fcc-unlock-setup.sh --dry-run
-
-# detect, enable, and restart ModemManager:
-sudo ./scripts/fcc-unlock-setup.sh
+chmod +x install.sh scripts/*/*.sh
+./install.sh
 ```
 
-Then verify with `mmcli -L` and `mmcli -m 0`. On a properly unlocked modem,
-ModemManager brings the radio up on its own — no extra service needed.
+<details>
+<summary>One-liner install (less safe — runs a remote script directly)</summary>
 
-This only activates scripts that ModemManager already ships; it doesn't bypass
-or defeat the FCC lock mechanism, it uses the vendor's own supported unlock
-path.
+If you'd rather not clone first, you can pipe the installer straight from
+GitHub. Only do this if you trust the source; piping remote code into a shell
+means you're running it sight-unseen.
+
+```bash
+bash <(curl -fsSL https://raw.githubusercontent.com/pastelrx/xfce-convertible-scripts/main/install.sh)
+```
+
+Note: the one-liner still needs the repo's `scripts/` directory next to it, so
+cloning is the supported path. The clone-first method above is recommended.
+</details>
+
+## Screenshots
+
+The crypto coin-picker GUI:
+
+![Crypto config GUI](screenshots/crypto-config.png)
+
+The panel — crypto ticker and Fear & Greed index:
+
+![Panel](screenshots/panel.png)
+
+Hover for the full watchlist with 24h changes:
+
+![Tooltip](screenshots/tooltip.png)
+
+## What's included
+
+| Script | What it does |
+|--------|--------------|
+| `gromit-toggle.sh` | Smart launcher/toggle for [Gromit-MPX](https://github.com/bk138/gromit-mpx) screen annotation — first press launches, repeats toggle drawing, no duplicate instances. |
+| `gromit-mpx.cfg.example` | Gromit-MPX config: cyan pen by default (readable on dark), eraser on the pen's side button. |
+| `crypto-tray.sh` | Live crypto prices in the panel via genmon. Configurable coins; panel shows label+price, tooltip shows a wider watchlist with 24h %. Binance. |
+| `crypto-config.sh` | Small [yad](https://github.com/v1cont/yad) GUI to pick which coins `crypto-tray.sh` shows — checkboxes for common coins plus a field for any others. Writes `~/.config/crypto-tray.conf`. |
+| `fng-tray.sh` | Fear & Greed index in the panel, coloured by zone. Caches hourly so it paints right after login. alternative.me. |
+| `fcc-unlock-setup.sh` | Detects a WWAN modem and activates the matching vendor FCC-unlock script that ships with ModemManager, so it's unlocked automatically. Run with sudo. |
 
 ## Requirements
 
+The installer checks these per-script and offers to install what's missing:
+
 - X11 + XFCE
-- `gromit-mpx` (from the AUR on Arch/Manjaro) — for the annotation scripts
+- `gromit-mpx` (AUR) — for the annotation scripts
 - `xorg-xinput` — for checking pen button numbers
+- `xfce4-genmon-plugin` + `curl` — for the crypto / Fear & Greed panel monitors
+- `yad` — for the `crypto-config` coin-picker GUI
 - `modemmanager` + `usbutils` — for `fcc-unlock-setup.sh`
 
-## Install
+## Manual install
+
+If you'd rather not use `install.sh`, copy what you want by hand:
 
 ```bash
-git clone https://github.com/pastelrx/xfce-tablet-scripts.git
-cd xfce-tablet-scripts
+# panel monitors and the gromit launcher go on PATH
+cp scripts/tricker-fng/crypto-tray.sh   ~/.local/bin/
+cp scripts/tricker-fng/fng-tray.sh      ~/.local/bin/
+cp scripts/gromit-toggle/gromit-toggle.sh ~/.local/bin/
+chmod +x ~/.local/bin/{crypto-tray,fng-tray,gromit-toggle}.sh
+
+# gromit config
+cp scripts/gromit-toggle/gromit-mpx.cfg.example ~/.config/gromit-mpx.cfg
+
+# fcc-unlock is a one-shot, run in place:
+sudo scripts/fcc-unlock/fcc-unlock-setup.sh --dry-run
 ```
 
-Copy the scripts you want into `~/.local/bin/` (make sure it's on your `PATH`)
-and the config into `~/.config/`.
+For the panel monitors, add a **Generic Monitor** to the XFCE panel
+(`xfce4-genmon-plugin`) pointing at the script, period `60` for crypto and
+`300` for Fear & Greed (it caches hourly, so a short period just makes it paint
+soon after login). A panel separator between them keeps things tidy.
+
+## Configuring which coins show
+
+`crypto-tray.sh` reads its coin lists from `~/.config/crypto-tray.conf`:
+
+```bash
+PANEL_COINS="BTC ETH"
+TOOLTIP_COINS="BTC ETH SOL XRP DOGE LTC"
+```
+
+You can edit that by hand, or use the **`crypto-config.sh`** GUI: it shows
+checkboxes for common coins plus a free-text field for anything else, and a
+field for the short panel row. Launch it from rofi, a keyboard shortcut, or a
+terminal — whatever's handy (genmon on some versions has no "command on click",
+so a rofi/hotkey launch is the reliable route). On Save it rewrites the conf and
+restarts the panel so the change shows immediately.
+
+## Data sources & attribution
+
+- **Crypto prices** come from the Binance public API (no key). Binance doesn't
+  require attribution; just mind the rate limits — the 60s refresh is well
+  within them.
+- **Fear & Greed index** comes from
+  [alternative.me](https://alternative.me/crypto/fear-and-greed-index/), which
+  asks that their data be shown with attribution next to it. `fng-tray.sh` puts
+  "Data from alternative.me" in the panel tooltip — keep it if you redistribute.
 
 ## License
 
