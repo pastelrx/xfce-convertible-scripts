@@ -1,4 +1,5 @@
 # xfce-convertible-scripts
+Written using Claude Opus 4.5
 
 Small utility scripts for running a convertible / 2-in-1 laptop comfortably
 under **XFCE on X11** — pen annotation, a crypto panel readout, and modem
